@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="salesInfoSQL">
+ 	<!-- 공통 : 임의의 매상번호 수령 -->	
+<select id="getSalesSeq" resultType="Integer">
+	select sales_seq.nextVal from dual
+</select>
+
+<!-- 공통 : 전체 매상 정보 호출(페이징 없음) -->
+<select id="getChartRawData" parameterType="java.util.Map" resultType="salesInfo">
+	select * from SALES_INFO
+				<if test="keyword !='' and searchOption!=''"> where
+				 	<choose>
+						<when test="searchOption eq 'order_no'"> 
+							SALES_INFO.order_no = #{keyword}
+						</when>
+						<when test="searchOption eq 'order_id'"> 
+							SALES_INFO.order_id = #{keyword}
+						</when>
+						<when test="searchOption eq 'sales_date'"> 
+							SALES_INFO.sales_date = to_date(#{keyword},'yyyy-MM-dd')
+						</when>																				
+				    	<otherwise> ${searchOption} like '%'||#{keyword}||'%' </otherwise>		
+				 	</choose>
+				</if>		
+</select>
+
+<!-- 매상 정보 업로드 -->
+<insert id="uploadSalesInfo" parameterType="salesInfo">
+	insert into SALES_INFO values(#{sales_seq},
+								  #{order_no},
+								  #{order_id},
+								  #{sales_revenue},
+								  #{sales_payment_json},
+								  SYSDATE)
+</insert>
+
+<!-- 공통 : 전체 총글수 -->
+<select id="getTotalA" resultType="Integer">
+  		select count(*)  from SALES_INFO
+</select>
+
+<!-- 공통 : 검색 총글수 -->
+<select id="getTotalSearchA" parameterType="java.util.Map" resultType="Integer">
+ 		select count(*) from SALES_INFO	
+				<if test="keyword !='' and searchOption!=''"> where
+				 	<choose>
+						<when test="searchOption eq 'order_no'"> 
+							SALES_INFO.order_no = #{keyword}
+						</when>
+						<when test="searchOption eq 'order_id'"> 
+							SALES_INFO.order_id = #{keyword}
+						</when>
+						<when test="searchOption eq 'sales_date'"> 
+							SALES_INFO.sales_date = to_date(#{keyword},'yyyy-MM-dd')
+						</when>																				
+				    	<otherwise> ${searchOption} like '%'||#{keyword}||'%' </otherwise>		
+				 	</choose>
+				</if>					 
+</select> 	
+
+	<!-- 재고 : 전체 목록 가져오기 -->
+	<select id="getsalesInfoList" parameterType="java.util.Map" resultType="salesInfo">
+			select * from 
+			(select rownum rn, tt.* from 
+			(select * from SALES_INFO order by
+				<if test="sortSubject !='' and sortType !=''"> 
+				 	<choose>
+						<when test="sortSubject eq 'order_no'"> order_no </when>
+						<when test="sortSubject eq 'order_id'"> order_id </when>
+						<when test="sortSubject eq 'sales_revenue'"> sales_revenue </when>								
+				    	<otherwise> sales_date </otherwise>			
+				 	</choose>
+					<choose>
+					    <when test="sortType eq 'asc'"> ASC </when>
+					    <otherwise> DESC </otherwise>
+					</choose>				 	
+				</if>
+				<if test="sortSubject eq '' and sortType eq ''">
+					sales_seq asc
+				</if>						
+				)tt) 
+			where (rn between #{startNum} and #{endNum}) 
+	</select>
+
+ 	<!-- 재고  : 검색 목록 가져오기-->
+ 	<select id="salesInfoSearch" parameterType="java.util.Map" resultType="salesInfo">
+		 		select * from 
+				(select rownum rn, tt.* from 
+				(select * from SALES_INFO
+				<if test="keyword !='' and searchOption!=''"> where
+				 	<choose>
+						<when test="searchOption eq 'order_no'"> 
+							SALES_INFO.order_no = #{keyword}
+						</when>
+						<when test="searchOption eq 'order_id'"> 
+							SALES_INFO.order_id = #{keyword}
+						</when>
+						<when test="searchOption eq 'sales_date'"> 
+							SALES_INFO.sales_date = to_date(#{keyword},'yyyy-MM-dd')
+						</when>																				
+				    	<otherwise> ${searchOption} like '%'||#{keyword}||'%' </otherwise>		
+				 	</choose>
+				</if>	
+				order by
+				<if test="sortSubject !='' and sortType !=''"> 
+				 	<choose>
+						<when test="sortSubject eq 'order_no'"> order_no </when>
+						<when test="sortSubject eq 'order_id'"> order_id </when>
+						<when test="sortSubject eq 'sales_revenue'"> sales_revenue </when>								
+				    	<otherwise> sales_date </otherwise>			
+				 	</choose>
+					<choose>
+					    <when test="sortType eq 'asc'"> ASC </when>
+					    <otherwise> DESC </otherwise>
+					</choose>				 	
+				</if>
+				<if test="sortSubject eq '' and sortType eq ''">
+					sales_seq asc
+				</if>
+				) tt) 
+				where (rn between #{startNum} and #{endNum})
+ 	</select>
+
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

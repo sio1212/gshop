@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="productSQL">
+ 	<!-- 공통 : 임의의 상품번호 수령 -->	
+ 	<select id="product_getSeq" resultType="Integer">
+ 		select product_seq.nextVal from dual
+ 	</select>
+ 	<!-- 상품(공통) : 상품 매상 업데이트 (수취확이)-->
+ 	<update id="updateSalesProductInfo" parameterType="product">
+ 		update PRODUCT_NAME set PRODUCT_SALESMOUNT=#{product_salesMount} where PRODUCT_NAME_NO=#{product_name_no}
+ 	</update>
+	<!-- 공통 : 전체 총글수 -->
+	<select id="getTotalA" parameterType="java.util.Map" resultType="Integer">
+  		select count(*) 
+  		<if test="tableName !=''"> from
+		 <choose>
+			<when test="tableName eq 'PRODUCT'"> PRODUCT</when>
+		    <otherwise> PRODUCT_NAME </otherwise>			
+		 </choose>
+		</if>
+ 	</select>
+ 	
+ 	<!-- 공통 : 검색 총글수 -->
+ 	<select id="getTotalSearchA" parameterType="java.util.Map" resultType="Integer">
+ 		select count(*) 
+ 		<if test="tableName !=''"> from
+		 	<choose>
+				<when test="tableName eq 'PRODUCT'"> PRODUCT</when>
+		    	<otherwise> PRODUCT_NAME </otherwise>			
+		 	</choose>
+		</if>
+ 		<if test="joinName !=''"> 
+		 	<choose>
+				<when test="joinName eq 'PRODUCT'"> 
+					left join PRODUCT
+					on PRODUCT.product_name_no = PRODUCT_NAME.product_name_no	
+				</when>
+		    	<otherwise></otherwise>			
+		 	</choose>
+		</if>		
+ 		<if test="keyword !=''"> where
+		 	<choose>
+				<when test="searchOption eq 'productName'"> 
+					PRODUCT.PRODUCTNAME like '%'||#{keyword}||'%'
+				</when>
+				<when test="searchOption eq 'productid'"> 
+					PRODUCT.PRODUCTID like '%'||#{keyword}||'%'
+				</when>
+				<when test="searchOption eq 'product_name_no'"> 
+					PRODUCT.PRODUCT_NAME_NO like '%'||#{keyword}||'%'
+				</when>								
+		    	<otherwise></otherwise>			
+		 	</choose>
+		</if>		
+				 
+ 	</select> 	
+ 	
+	<!-- 재고 : 전체 목록 가져오기 -->
+	<select id="inventoryList" parameterType="java.util.Map" resultType="product">
+			select * from 
+			(select rownum rn, tt.* from 
+			(select p.*,pn.product_name_instockdate from product p,product_name pn 
+			where p.product_name_no=pn.product_name_no 
+			order by p.product_name_no desc)
+			 tt) 
+			where (rn between #{startNum} and #{endNum}) 
+	</select>
+
+ 	<!-- 재고  : 검색 목록 가져오기-->
+ 	<select id="inventorySearch" parameterType="java.util.Map" resultType="product">
+		 		select * from 
+				(select rownum rn, tt.* from 
+				(select PRODUCT.*,PRODUCT_NAME.product_name_instockdate from PRODUCT,PRODUCT_NAME
+				where PRODUCT.product_name_no=PRODUCT_NAME.product_name_no 
+				<if test="keyword !=''"> and
+				 	<choose>
+						<when test="searchOption eq 'productName'"> 
+							PRODUCT.PRODUCTNAME like '%'||#{keyword}||'%'
+						</when>
+						<when test="searchOption eq 'productid'"> 
+							PRODUCT.PRODUCTID like '%'||#{keyword}||'%'
+						</when>
+						<when test="searchOption eq 'product_name_no'"> 
+							PRODUCT.PRODUCT_NAME_NO like '%'||#{keyword}||'%'
+						</when>								
+				    	<otherwise></otherwise>			
+				 	</choose>
+				</if>	
+				order by PRODUCT.PRODUCT_NAME_NO desc) tt) 
+				where (rn between #{startNum} and #{endNum})
+ 	</select>
+ 
+ 	<!-- 재고 : 특정 재고 정보 가져오기  ****************-->
+ 	<select id="getInventoryInfo" parameterType="String" resultType="product">
+ 		select * from product where productid=#{productID}
+ 	</select>
+ 	
+  	<!-- 재고 : 재고 업데이트 반영 ***********-->
+ 	<update id="inventoryUpdate" parameterType="java.util.Map">
+ 	begin
+		<choose>
+			<when test="ordering eq 'no'"> 
+				update product set stock=#{stock},unitcost=#{unitcost} where productid=#{productID};
+			</when>
+			<otherwise>
+	
+				update product set stock=#{stock},unitcost=#{unitcost},ordernum=ordernum+1 where productid=#{productID};		
+			</otherwise>			
+		</choose>	
+
+ 		update product_name set product_name_instockdate=sysdate where product_name_no=#{product_name_no};
+ 	end;	
+ 	</update>	
+ 	
+ 	<!-- 재고 : 재고 입점 등록 -->
+  	<insert id="inventoryUpload" parameterType="product">
+ 	 insert into product values(#{productID},
+ 	 							#{unitcost},
+ 	 							0,
+ 	 							#{promotioncode},
+ 	 							#{productName},
+ 	 							#{product_name_no},
+ 	 							sysdate,
+ 	 							0)
+ 	</insert>
+ 	
+ 	<!-- 재고 : 재고 수정 -->
+   	<update id="inventoryModify" parameterType="product">
+ 	 update product set unitcost=#{unitcost},
+ 	 					promotioncode=#{promotioncode},
+ 	 					productName=#{productName}
+ 	 		where product_name_no=#{product_name_no}
+ 	</update>	 	
+ 	
+ 	<!-- 재고 : 재고 삭제 -->
+ 	<delete id="inventoryDelete" parameterType="String">
+		delete product where product_name_no = #{product_name_no}		
+	</delete>		
+	<!-- 재고: 총 입점재고 목록 호출 -->
+	 <select id="getInventoryCatalog" resultType="product">
+	 	select * from PRODUCT 
+	 	join PRODUCT_NAME 
+	 	on PRODUCT.PRODUCT_NAME_NO = PRODUCT_NAME.PRODUCT_NAME_NO
+	 </select>
+ 	<!-- 상품(공통) : 전체 상품 목록 가져오기 -->
+	<select id="productList" parameterType="java.util.Map" resultType="product">
+		 		select * from 
+				(select rownum rn, tt.* from 
+				(select * from product_name
+				left join product
+				on product.product_name_no = product_name.product_name_no
+                inner join product_category
+                on product_name.product_category_no=product_category.product_category				
+				order by product_name.product_name_no desc) tt) 
+				where (rn between #{startNum} and #{endNum})
+	</select>
+
+ 	<!-- 상품(공통) : 검색 상품 목록 가져오기-->
+ 	<select id="productSearch" parameterType="java.util.Map" resultType="product">
+		 		select * from 
+				(select rownum rn, tt.* from 
+				(select * from product_name
+				left join product
+				on product.product_name_no = product_name.product_name_no
+                inner join product_category
+                on product_name.product_category_no=product_category.product_category				
+				<if test="keyword !=''"> where
+				 	<choose>
+						<when test="searchOption eq 'productName'"> 
+							PRODUCT.PRODUCTNAME like '%'||#{keyword}||'%'
+						</when>
+						<when test="searchOption eq 'productid'"> 
+							PRODUCT.PRODUCTID like '%'||#{keyword}||'%'
+						</when>
+						<when test="searchOption eq 'product_name_no'"> 
+							PRODUCT.PRODUCT_NAME_NO like '%'||#{keyword}||'%'
+						</when>								
+				    	<otherwise></otherwise>			
+				 	</choose>
+				</if>
+				order by product_name.product_name_no desc) tt) 
+				where (rn between #{startNum} and #{endNum})
+ 	</select>	
+ 	
+ 	<!-- 상품(공통) : 개별 상품 정보 가져오기 -->
+ 	<select id="getProductInfo" parameterType="String" resultType="product">
+ 		select * from product_name
+ 		left join product
+ 		on product.product_name_no = product_name.product_name_no
+ 		inner join product_category
+ 		on product_name.product_category_no=product_category.product_category
+ 		where product_name.product_name_no=#{product_name_no} 		
+ 	</select>
+
+ 	
+ 	<!-- 상품(관리자) : 상품 업로드 -->
+ 	<insert id="productUpload" parameterType="product">
+ 	 insert into product_name values(#{product_name_no},
+ 	 								#{product_category_no},
+ 	 								#{product_name_title},
+ 	 								#{product_name_detail},
+ 	 								#{product_name_price},
+ 	 								#{product_name_image},
+ 	 								#{product_name_instockdate},
+ 	 								0,
+ 	 								0,
+ 	 								0,
+ 	 								#{product_onstore})
+ 	</insert>
+
+ 	<!-- 상품(관리자) : 상품 수정 -->	
+ 	<update id="productModify" parameterType="product">
+ 	 update product_name set product_category_no=#{product_category_no},
+ 	 						 product_name_title=#{product_name_title},
+ 	 						 product_name_detail=#{product_name_detail},
+ 	 						 product_name_price=#{product_name_price},
+ 	 						 product_name_instockdate=#{product_name_instockdate},
+ 	 						 product_name_image=#{product_name_image},
+ 	 						 product_onstore=#{product_onstore}
+ 	 	where product_name_no=#{product_name_no}
+ 	</update>
+ 	
+   	<!-- 상품(관리자) : 상품 삭제-->	
+ 	<delete id="productDelete" parameterType="String">
+		delete product_name where product_name_no = #{product_name_no}
+	</delete>	
+		
+	<!-- 상품(사용자) : 조건 첨부 가져오기(product_name)-->		
+	<select id="getUserProductList" parameterType="java.util.Map" resultType="product">
+    	select * from product 
+		inner join product_name
+ 		on product.product_name_no = product_name.product_name_no
+ 		inner join product_category
+ 		on product_name.product_category_no=product_category.product_category 			
+		where product_onstore='YES' 
+		<if test="product_category_name != 'ALL'"> 
+			and product_category.product_category_name=#{product_category_name}
+		</if>
+		
+	</select>	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<!-- 상품(사용자) : 특정 상품 hitUpdate-->
+	<update id="product_hitUpdate" parameterType="Integer">
+		update product_name set product_hit=product_hit+1 where product_name_no=#{product_name_no}
+	</update>
+	
+	<!-- 상품(사용자) : 특정 상품 좋아요 여부 확인하기 -->
+	<select id="getLikeValue" parameterType="java.util.Map" resultType="Integer">
+		select SEQ from LIKETABLE where USERID=#{USERID} and PRODUCT_NO=#{PRODUCT_NO}
+	</select>
+	
+	<!-- 상품(사용자) : 특정 상품 좋아요 하기 -->
+	<insert id="addLike" parameterType="java.util.Map">
+	begin
+		insert into LIKETABLE values(SEQ.nextVal,#{PRODUCT_NO},#{USERID});
+		update product_name set product_like=product_like+1;
+	end;
+	</insert>
+	
+	<!-- 상품(사용자) : 특정 상품 좋아요 취소하기 -->
+	<delete id="removeLike" parameterType="Integer">
+	begin
+		delete LIKETABLE where SEQ=#{SEQ};
+		update product_name set product_like=product_like-1;
+	end;
+	</delete>		
+	
+	
+	
+	<!-- 리뷰  뽑기 -->
+	<select id="reviewdo" parameterType="String" resultType="product">
+	
+	select product_name_no from product 
+  	where productid=#{productid}
+	
+	</select>
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

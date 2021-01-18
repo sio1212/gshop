@@ -1,0 +1,195 @@
+@charset "UTF-8";
+
+@import url(//fonts.googleapis.com/earlyaccess/hanna.css);
+
+/* view form, order form, modify form */
+
+.viewTitle{
+	text-align:right;	
+}
+
+#Space{
+	width: 200px;
+	height:200px;
+	margin-top : 100px;
+}
+#figure{
+	width: 100px;
+	height:100px;
+	margin-top : 100px;
+}
+
+#PQAModal{
+	cursor : Pointer;
+}
+
+#wrap{
+	display:none;
+	border:1px solid;
+	width:500px;
+	height:300px;
+	margin:5px 0;
+	position:relative;
+}
+
+#btnFoldWrap{
+	cursor:pointer;
+	position:absolute;
+	right:0px;
+	top:-1px;
+	z-index:1;
+}
+
+
+/*login form*/
+
+.title_logo a{
+color: white;
+font-size : 24pt;
+font-weight: 700;
+font-family: 'Hanna', fantasy;
+}
+
+.title_logo span{
+color: #f5f5f5;	
+font-family: 'Hanna', fantasy;
+}
+
+.modal-content{
+background-color: rgba(246,246,246,0.5) !important;
+background-size: cover;
+background-repeat: no-repeat;	
+height: 100%;
+font-color: white;
+font-family: 'Hanna', fantasy;
+font-weight: bold;
+}
+
+.modal-footer a{
+font-size : 10pt;
+font-color: #383849;
+}
+
+.input-group-prepend span{
+width: 50px;
+background-color: #FFC312;
+font-color: #383849;
+border:0 !important;
+}
+
+.input-group-prepend-alt span{
+width: 100px;
+background-color: #343a40;
+color : white;
+border:0 !important;
+}
+
+input:focus{
+outline: 0 0 0 0  !important;
+box-shadow: 0 0 0 0 !important;
+
+}
+
+.memberBtnDiv input{
+	width: 100%;
+	height: 40px;
+	
+}
+.remember{
+color: white;
+}
+
+.remember input
+{
+width: 20px;
+height: 20px;
+margin-left: 15px;
+margin-right: 5px;
+}
+
+.body_btn{
+font-color: #383849;
+background-color: #FFC312;
+width: 100px;
+font-family: 'Hanna', fantasy;
+font-weight: bold;
+}
+
+.footer_btn{
+font-color: #383849;
+background-color: #FFC312;
+width: 100px;
+font-size : 10pt;
+font-family: 'Hanna', fantasy;
+font-weight: bold;
+}
+
+.body_btn:hover{
+font-color: #383849;
+background-color: white;
+}
+
+.footer_btn:hover{
+font-color: #383849;
+background-color: white;
+}
+
+.links{
+font-color: #383849;
+}
+
+.links a{
+margin-left: 4px;
+}
+
+.popover {
+background-color : rgba(87,87,87,0.5);
+font-weight : bold;
+font-size : 12pt;
+}
+
+/* writeForm*/
+.checkEmail:link {color: black; text-decoration: none;}
+.checkEmail:visited {color: black; text-decoration: none;}
+.checkEmail:hover {color: blue; text-decoration: none; font-weight: bold;}
+.checkEmail:active {color: green; text-decoration: none;}
+
+#goConfirm{
+	cursor : pointer;
+}
+.modal-content-email{
+background-color : rgba(87,87,87) !important;
+background-size: cover;
+background-repeat: no-repeat;	
+height: 100%;
+font-color: white;
+font-family: 'Hanna', fantasy;
+font-weight: bold;
+}
+
+#youCheck{
+	color: green;
+}
+
+#popover-content-logout > * {
+  background-color:#ff0000 !important;
+}
+
+.card-header {
+    padding: .75rem 1.25rem;
+    margin-bottom: 0;
+    background-color: #212529;
+    color: white;
+}
+
+.btn-link {
+    font-weight: 400;
+    color: white;
+    text-decoration: none;
+}
+
+.under-line-title{
+	text-decoration:underline;
+	text-underline-position:under;
+	text-weight: bold;
+}

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="adminSQL">
+<!-- 1. 관리자 계정 불러오기 -->
+<select id="getAdmin" resultType="admin">
+	select * from ADMIN where admin_id='Administrator'
+</select>
+	<!-- 중복 아이디 체크
+	 -->
+	<select id="checkId" parameterType="String" resultType="member">
+		select * from ADMIN where admin_id=#{id}
+	</select>
+<!-- 2. 1:1 문의 목록 호출 -->
+<select id="getPersonalQAList" resultType="message">
+	select * from QAMESSAGE
+</select>
+<!-- 3. 1:1 문의 개별 호출-->
+<select id="getPersonalQA" parameterType="String" resultType="message">
+	select * from QAMESSAGE where seq=#{seq}
+</select>
+<!-- 3. 1:1 문의 삭제-->
+<delete id="deleteQA" parameterType="String">
+	delete QAMESSAGE where seq=#{seq}
+</delete>
+</mapper>

@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tradingSQL">
+
+<!-- 공통 : 특정 회원 주문 정보 호출-->
+<select id="getOrderList"  parameterType="String" resultType="order">
+	SELECT * from ORDERS where ORDER_ID=#{id}
+</select>
+
+<!-- 공통 : 특정 주문 번호 부여-->
+<select id="getOrderNum"  resultType="Integer">
+	select order_seq.nextVal from dual
+</select>
+
+<!-- 공통 : 특정 회원 쿠폰 정보 호출-->
+<select id="getCouponList"  parameterType="String" resultType="coupon">
+	SELECT * from BENEFIT_GRANT
+	inner join COUPON_BOOK
+	on BENEFIT_GRANT.coupon_no = COUPON_BOOK.coupon_no
+	where GRANT_ID=#{id}
+</select>
+
+<!-- 장바구니 : 특정 회원 장바구니 정보 호출-->
+<select id="getCartList"  parameterType="String" resultType="cart">
+	SELECT * from SHOPPINGCART where MEMBERID=#{memberid}
+</select>
+
+<!-- 장바구니 : 회원 장바구니 생성 -->
+<insert id="insertCartList">
+	INSERT into SHOPPINGCART values(CART_SEQ.nextval,#{memberid},#{cartList_json})
+</insert>
+
+<!-- 장바구니 : 회원 장바구니 갱신 -->
+<update id="updateCartList">
+	UPDATE SHOPPINGCART set cartList_json=#{cartList_json} where MEMBERID=#{memberid}
+</update>
+
+<!-- 쿠폰 : 등록된 쿠폰 목록 가져오기 -->
+<select id="getCouponBook" resultType="coupon">
+	select * from COUPON_BOOK
+</select>
+
+<!-- 쿠폰 : 쿠폰 목록에 쿠폰 등록하기 -->
+<insert id="makeCoupon" parameterType="coupon">
+	insert into COUPON_BOOK values(coupon_seq.nextVal,
+									#{coupon_name},
+									#{coupon_type},
+									#{discount_mount},
+									#{coupon_target})
+</insert>
+
+<!-- 쿠폰 : 쿠폰 목록의 쿠폰 수정하기 -->
+<update id="modifyCoupon" parameterType="coupon">
+	UPDATE COUPON_BOOK set COUPON_NAME=#{coupon_name},
+						   COUPON_TYPE=#{coupon_type},
+						   DISCOUNT_MOUNT=#{discount_mount},
+						   COUPON_TARGET=#{coupon_target}
+						   where COUPON_NO = #{coupon_no}
+</update>
+
+<!-- 쿠폰 : 특정 번호로 발행된 쿠폰 목록 호출하기 -->
+<select id="getSelectedCoupon" parameterType="String" resultType="coupon">
+	select * from COUPON_BOOK where COUPON_NO = #{coupon_no}
+</select>
+
+<!-- 쿠폰 : 특정 번호로 지급된 쿠폰 목록 호출하기 -->
+<select id="getGivenCoupon" parameterType="String" resultType="coupon">
+	select * from BENEFIT_GRANT where COUPON_NO = #{coupon_no}
+</select>
+
+<!-- 쿠폰 : 쿠폰 목록의 쿠폰 삭제하기 -->
+<delete id="deleteCoupon" parameterType="String">
+	DELETE COUPON_BOOK where COUPON_NO = #{coupon_no}
+</delete>
+
+<!-- 쿠폰 : 쿠폰 지급 -->
+<insert id="setCoupon" parameterType="coupon">
+	INSERT into BENEFIT_GRANT values(#{grant_id},#{coupon_no},#{coupon_duedate},#{personal_code})
+</insert>
+
+<!-- 쿠폰: 해당 회원 지급 쿠폰 수정하기(사유:쿠폰 사용) -->
+<update id="modifyUserBenefit" parameterType="java.util.Map">
+	update BENEFIT_GRANT set personal_code=#{personal_code} where coupon_no = #{coupon_no} and grant_id=#{id} 
+</update>
+
+<!-- 쿠폰: 해당 회원 지급 쿠폰 삭제하기(사유:계정삭제) -->
+<delete id="deleteUserBenefit" parameterType="String">
+	delete BENEFIT_GRANT where grant_id=#{id}
+</delete>
+
+<!-- 쿠폰: 해당 회원 결제시 사용 가능 쿠폰 호출하기 -->
+<select id="getAvailableUserCoupon" parameterType="String" resultType="coupon">
+	SELECT * from BENEFIT_GRANT 
+	inner join COUPON_BOOK
+	on BENEFIT_GRANT.COUPON_NO = COUPON_BOOK.COUPON_NO
+	where grant_id=#{id} 
+		and BENEFIT_GRANT.PERSONAL_CODE is not null
+		and BENEFIT_GRANT.COUPON_DUEDATE > SYSDATE
+</select>
+
+<!-- 주문 : (관리자) 총 개수 가져오기 -->
+<select id="getTotalA" resultType="Integer">
+	SELECT count(*) from ORDERS
+</select>
+<!-- 주문 : (관리자) 주문 목록 가져오기 -->
+<select id="getUserOrderList" parameterType="java.util.Map" resultType="order">
+			SELECT * from 
+			(SELECT rownum rn, tt.* from 
+			(SELECT * from ORDERS 	
+			order by order_date desc)tt)		
+			where (rn between #{startNum} and #{endNum}) 
+</select>
+<!-- 주문 : (관리자) 검색 후 총 개수 가져오기 -->
+<select id="getTotalSearchA" parameterType="java.util.Map" resultType="Integer">
+		SELECT count(*) from ORDERS 
+		<if test="searchOption != null and searchOption !=''">where
+			<choose>
+				<when test="searchOption eq 'order_no'"> order_no = #{keyword}</when>
+			    <when test="searchOption eq 'order_date'"> order_date = to_date(#{keyword},'yyyy-MM-dd')</when>
+			    <when test="searchOption eq 'order_state'"> order_state = #{keyword}</when>		    		    
+			    <otherwise> ${searchOption} like '%'||#{keyword}||'%' </otherwise>
+			</choose> 
+		</if> 
+</select>
+<!-- 주문 : (관리자) 검색 후 주문 목록 가져오기 -->
+<select id="userSearchOrderList" parameterType="java.util.Map" resultType="order">
+		SELECT * from (SELECT rownum rn, tt.* from 
+			(SELECT * from ORDERS 
+			<if test="searchOption != null and searchOption !=''">where
+				<choose>
+					<when test="searchOption eq 'order_no'"> order_no = #{keyword}</when>
+					<when test="searchOption eq 'order_date'"> order_date like to_date(#{keyword},'yyyy-MM-dd')</when>
+					<when test="searchOption eq 'order_state'"> order_state = #{keyword}</when>		    		    
+					<otherwise> ${searchOption} like '%'||#{keyword}||'%' </otherwise>
+				</choose> 
+			</if> 
+			order by order_date desc)tt)
+			where (rn between #{startNum} and #{endNum}) 
+</select>
+
+<!-- 주문 : 아이디 변경 -->
+<update id="setNewOrderId" parameterType="order">
+	UPDATE ORDERS set order_id=#{order_id} where order_no=#{order_no}
+</update>
+
+<!-- 주문 : 비밀번호 변경 -->
+<update id="setNewOrderPwd" parameterType="order">
+	UPDATE ORDERS set order_pwd=#{order_pwd} where order_no=#{order_no}
+</update>
+
+<!-- 주문: 주문서 업로드 -->
+<insert id="putOrder" parameterType="order">
+	INSERT INTO ORDERS values(#{order_no},
+							  #{order_id},
+							  #{order_total},
+							  #{order_state},
+							  #{order_date},
+							  #{order_address},
+							  #{order_email},
+							  #{order_tel},
+							  #{order_pwd},
+							  #{order_name},
+							  #{orderlist_json},
+							  #{order_receiver},
+							  null,
+							  null,
+							  '[주문접수]',
+							  SYSDATE,
+							  ${order_deliveryfee})
+</insert>
+
+<!-- 주문: 결제 업로드 -->
+<insert id="setPayment" parameterType="order">
+	INSERT INTO PAYMENT values(#{payment_amount},
+							   #{order_no},
+							   #{payment_method},
+							   #{payment_date},
+							   #{payment_state})
+</insert>
+
+<!-- 주문: 특정 주문서 호출 -->
+<select id="getOrderInfo" parameterType="String" resultType="order">
+	SELECT * from ORDERS where order_no=#{order_no}
+</select>
+
+<!-- 주문: 특정 주문서의 결제 정보 호출 -->
+<select id="getPaymentInfo" parameterType="String" resultType="order">
+	SELECT * from PAYMENT where order_no=#{order_no}
+</select>
+
+<!-- 주문: 주문서 수정(사용자) -->
+<update id="modifyOrderUser" parameterType="order">
+	UPDATE ORDERS set order_address = #{order_address},
+					  order_email = #{order_email},
+					  order_tel = #{order_tel},
+					  order_name= #{order_name},
+					  order_receiver = #{order_receiver}) where order_no = #{order_no}
+</update>
+
+<!-- 주문: 주문서 수정(비밀번호 분실로 인한 업데이트) -->
+<update id="modifyOrderPwd" parameterType="order">
+	UPDATE ORDERS set order_pwd = #{order_pwd} where order_no = #{order_no}
+</update>
+
+<!-- 주문: 주문서 수정(상태 변경) -->
+<update id="modifyOrderAdmin" parameterType="order">
+	UPDATE ORDERS set order_state = #{order_state},
+					  	order_statement=#{order_statement},
+					  	order_logtime=SYSDATE 
+					  	where order_no = #{order_no}
+</update>
+
+<!-- 주문: 주문서 정보 수정-->
+<update id="changeOrderInfo" parameterType="java.util.Map">
+	UPDATE ORDERS set 
+				<if test="modify_type eq 'resetPwd'"> 	
+					order_pwd =#{order_pwd},
+				</if>	
+				<if test="modify_type eq 'deliveryInfo'"> 	
+					order_address =#{order_address},
+				</if>
+				<if test="modify_type eq 'contactInfo'"> 
+					order_tel =#{order_tel},
+					order_email =#{order_email},					
+				</if>
+				<if test="modify_type eq 'extraInfo'"> 
+					order_deliverynum =#{order_deliverynum},
+					order_refundaccount =#{order_refundaccount},	
+					order_statement =#{order_statement},								
+				</if>
+					 order_logtime=SYSDATE 
+					 where order_no = #{order_no}
+</update>
+
+<!-- 주문: 입금완료시 수정-->
+<update id="updatePayment" parameterType="order">
+	UPDATE PAYMENT set payment_date=SYSDATE,payment_state = '[입금완료]'||payment_state where payment_date=null and order_no = #{order_no}
+</update>
+
+<!-- 주문: 재고변경 후 목록 수정-->
+<update id="implementingInventoryChange" parameterType="order">
+	UPDATE ORDERS set orderlist_json=#{orderlist_json} where order_no = #{order_no}
+</update>
+
+<!-- 주문: 환불,취소시 삭제 -->
+<delete id="cancelPayment" parameterType="Integer">
+	delete PAYMENT where order_no = #{order_no}
+</delete>
+
+<!-- 주문: 거래 내역 삭제 -->
+<delete id="deleteOrder" parameterType="String">
+	delete ORDERS where order_no = #{order_no}
+</delete>
+
+<!-- 배송료: 배송료 정책 호출 -->
+<select id="getDeliveryPolicy" resultType="delivery">
+	select * from DELIVERY
+</select>
+
+<!-- 배송료: 배송료 변경 -->
+<update id="modifyDeliveryPolicy"  parameterType="delivery">
+	UPDATE DELIVERY set DELIVERY_FEE=${delivery_fee} where DELIVERY_CODE=#{delivery_code}
+</update>
+
+
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
+
